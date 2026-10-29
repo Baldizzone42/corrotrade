@@ -1,0 +1,652 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="googlebot" content="noindex, nofollow">
+<meta name="description" content="CorroTrade - propuesta del panel de senales / copy-trading sobre IBKR para el circulo. Datos de ejemplo.">
+<meta name="color-scheme" content="dark light">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%227%22 fill=%22%230e1117%22/%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%225%22 fill=%22%233b82f6%22/%3E%3C/svg%3E">
+<style>:root{padding:0}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>CorroTrade</title>
+<style>
+  /* Layout: documento de presentación en una columna central; portada → cómo funciona → seguridad → fases → decisiones. Bandas a ancho completo, contenido acotado a lectura. */
+  :root {
+    --bg: #0e1117;
+    --surface: #161b22;
+    --surface-2: #1c232d;
+    --surface-3: #212a35;
+    --border: #272e39;
+    --border-soft: #1f2630;
+    --fg: #e6edf3;
+    --muted: #8b97a6;
+    --faint: #5c6673;
+    --accent: #3b82f6;
+    --accent-soft: #1e3a5f;
+    --long: #2ea043;
+    --long-soft: #10261a;
+    --short: #e5534b;
+    --short-soft: #3a1512;
+    --warn: #d99e05;
+    --warn-soft: #332803;
+    --violet: #a371f7;
+    --violet-soft: #26193d;
+    --radius: 14px;
+    --maxw: 820px;
+    --font-ui: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-num: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    color-scheme: dark;
+  }
+  /* Oscuro por defecto siempre; claro solo si el lector lo elige. */
+  :root[data-theme="light"] {
+    --bg: #eef1f6; --surface: #ffffff; --surface-2: #f5f7fa; --surface-3: #eef1f6;
+    --border: #e1e6ee; --border-soft: #edf0f5; --fg: #101620; --muted: #5a6472; --faint: #95a0ae;
+    --accent: #2563eb; --accent-soft: #dde8ff; --long: #197f3a; --long-soft: #ddf2e3;
+    --short: #c23832; --short-soft: #fbe3e1; --warn: #9a6f04; --warn-soft: #fbf0d0;
+    --violet: #7c4ddb; --violet-soft: #ece1fb; color-scheme: light;
+  }
+
+  * { box-sizing: border-box; }
+  body { background: var(--bg); color: var(--fg); font-family: var(--font-ui); line-height: 1.6; -webkit-font-smoothing: antialiased; }
+  h1, h2, h3, h4 { text-wrap: balance; margin: 0; letter-spacing: -0.015em; }
+  p { margin: 0; }
+  .num { font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+
+  .band { padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: max(18px, env(safe-area-inset-right, 0px)); }
+  .inner { max-width: var(--maxw); margin: 0 auto; }
+
+  /* Top bar */
+  .topbar {
+    position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(10px); border-bottom: 1px solid var(--border);
+    padding-block: 12px;
+  }
+  body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 21; background: var(--bg); }
+  .topbar .inner { display: flex; align-items: center; gap: 12px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 650; }
+  .brand .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); flex: none; }
+  .brand .sub { color: var(--faint); font-weight: 500; font-size: 13px; }
+  .tb-spacer { margin-left: auto; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600;
+    letter-spacing: 0.03em; text-transform: uppercase; padding: 6px 11px; border-radius: 999px;
+    border: 1px solid var(--border); color: var(--muted); background: var(--surface); cursor: pointer;
+  }
+  .pill.paper { color: var(--warn); background: var(--warn-soft); border-color: transparent; cursor: default; }
+
+  /* Hero */
+  .hero { padding-block: 60px 44px; }
+  .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin-bottom: 18px; }
+  .hero h1 { font-size: clamp(30px, 6vw, 46px); line-height: 1.08; }
+  .hero .lead { font-size: clamp(16px, 2.4vw, 19px); color: var(--muted); margin-top: 20px; max-width: 60ch; }
+  .hero .meta { display: flex; flex-wrap: wrap; gap: 10px 20px; margin-top: 28px; font-size: 13px; color: var(--faint); }
+  .hero .meta b { color: var(--fg); font-weight: 600; }
+
+  .frase {
+    margin-top: 34px; border-left: 3px solid var(--accent); background: var(--surface);
+    border-radius: 0 var(--radius) var(--radius) 0; padding: 20px 24px; font-size: 17px; color: var(--fg);
+  }
+  .frase b { color: var(--accent); }
+
+  section.block { padding-block: 44px; border-top: 1px solid var(--border-soft); }
+  .sec-label { font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); margin-bottom: 10px; }
+  h2.sec-title { font-size: clamp(22px, 4vw, 30px); }
+  .sec-intro { color: var(--muted); margin-top: 14px; max-width: 64ch; font-size: 15.5px; }
+
+  /* Cards genéricas */
+  .cards { display: grid; gap: 16px; margin-top: 28px; }
+  .cards.c2 { grid-template-columns: 1fr 1fr; }
+  .cards.c3 { grid-template-columns: repeat(3, 1fr); }
+  @media (max-width: 720px) { .cards.c2, .cards.c3 { grid-template-columns: 1fr; } }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+  .card h3 { font-size: 16px; margin-bottom: 8px; display: flex; align-items: center; gap: 9px; }
+  .card p { font-size: 14px; color: var(--muted); }
+  .card .tag { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--accent); }
+
+  .chip-ic { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; flex: none; background: var(--accent-soft); color: var(--accent); }
+  .chip-ic.green { background: var(--long-soft); color: var(--long); }
+  .chip-ic.red { background: var(--short-soft); color: var(--short); }
+  .chip-ic.warn { background: var(--warn-soft); color: var(--warn); }
+  .chip-ic.violet { background: var(--violet-soft); color: var(--violet); }
+
+  /* Flujo numerado */
+  .flow { display: grid; gap: 2px; margin-top: 28px; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--border); }
+  .step { display: grid; grid-template-columns: 44px 1fr; gap: 16px; background: var(--surface); padding: 18px 20px; align-items: start; }
+  .step .n { width: 30px; height: 30px; border-radius: 8px; background: var(--accent-soft); color: var(--accent); font-family: var(--font-num); font-weight: 600; display: grid; place-items: center; font-size: 14px; }
+  .step h4 { font-size: 15.5px; margin-bottom: 4px; }
+  .step p { font-size: 14px; color: var(--muted); }
+  .step .who { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--faint); margin-top: 6px; display: inline-block; }
+
+  /* Diagrama 3 piezas */
+  .diagram { margin-top: 28px; display: grid; gap: 14px; }
+  .piece { border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; background: var(--surface); position: relative; }
+  .piece .head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .piece .head .label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--faint); margin-left: auto; }
+  .piece h4 { font-size: 16px; }
+  .piece p { font-size: 13.5px; color: var(--muted); }
+  .conn { text-align: center; color: var(--faint); font-size: 12px; display: flex; align-items: center; gap: 10px; justify-content: center; }
+  .conn::before, .conn::after { content: ""; height: 1px; background: var(--border); flex: 1; max-width: 80px; }
+
+  /* Seguridad lista */
+  .seclist { display: grid; gap: 12px; margin-top: 26px; }
+  .secitem { display: grid; grid-template-columns: 26px 1fr; gap: 14px; align-items: start; }
+  .secitem .ic { color: var(--long); margin-top: 2px; }
+  .secitem h4 { font-size: 15px; margin-bottom: 3px; }
+  .secitem p { font-size: 14px; color: var(--muted); }
+
+  /* Fases timeline */
+  .phases { margin-top: 28px; display: grid; gap: 0; }
+  .phase { display: grid; grid-template-columns: auto 1fr; gap: 18px; }
+  .phase .rail { display: flex; flex-direction: column; align-items: center; }
+  .phase .bullet { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--border); background: var(--surface); flex: none; margin-top: 4px; }
+  .phase.done .bullet { background: var(--long); border-color: var(--long); }
+  .phase.ready .bullet { background: var(--accent); border-color: var(--accent); }
+  .phase .line { width: 2px; flex: 1; background: var(--border); margin-top: 4px; min-height: 18px; }
+  .phase:last-child .line { display: none; }
+  .phase .body { padding-bottom: 26px; }
+  .phase .ph-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .phase h4 { font-size: 16px; }
+  .phase .st { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 3px 8px; border-radius: 5px; }
+  .st.done { background: var(--long-soft); color: var(--long); }
+  .st.ready { background: var(--accent-soft); color: var(--accent); }
+  .st.todo { background: var(--surface-3); color: var(--muted); }
+  .phase p { font-size: 14px; color: var(--muted); margin-top: 6px; }
+
+  /* Decisiones */
+  .decisions { display: grid; gap: 10px; margin-top: 26px; }
+  .decision { display: grid; grid-template-columns: 24px 1fr; gap: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 11px; padding: 15px 18px; align-items: start; }
+  .decision .ic { color: var(--accent); margin-top: 2px; }
+  .decision p { font-size: 14.5px; }
+  .decision b { font-weight: 650; }
+  .decision .why { color: var(--muted); font-size: 13.5px; display: block; margin-top: 3px; }
+
+  /* Callout */
+  .callout { margin-top: 28px; border: 1px solid var(--warn); background: var(--warn-soft); border-radius: var(--radius); padding: 20px 22px; }
+  .callout h3 { font-size: 16px; color: var(--warn); margin-bottom: 8px; display: flex; align-items: center; gap: 9px; }
+  .callout p { font-size: 14.5px; color: var(--fg); }
+  .callout p + p { margin-top: 10px; }
+
+  /* Costes mini */
+  .costs { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 26px; }
+  @media (max-width: 720px) { .costs { grid-template-columns: 1fr; } }
+  .cost { border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; background: var(--surface); }
+  .cost .k { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+  .cost .v { font-size: 26px; font-weight: 700; margin-top: 6px; }
+  .cost .v small { font-size: 14px; color: var(--faint); font-weight: 500; }
+  .cost p { font-size: 13px; color: var(--muted); margin-top: 6px; }
+
+  .foot { padding-block: 40px 60px; border-top: 1px solid var(--border-soft); color: var(--faint); font-size: 13px; text-align: center; }
+  .foot .disc { max-width: 60ch; margin: 0 auto; }
+
+  .icon { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  .icon.sm { width: 15px; height: 15px; }
+
+  /* ===== Maqueta del panel (vista previa realista) ===== */
+  .mock-caption { font-size: 13px; color: var(--faint); margin-top: 14px; display: flex; align-items: center; gap: 8px; }
+  .mock {
+    margin-top: 22px; border: 1px solid var(--border); border-radius: 16px; overflow: hidden;
+    background: var(--bg); box-shadow: 0 18px 50px -24px rgba(0,0,0,0.55);
+  }
+  .mock-bar { display: flex; align-items: center; gap: 8px; padding: 11px 15px; background: var(--surface); border-bottom: 1px solid var(--border); }
+  .mock-bar .dots { display: flex; gap: 6px; }
+  .mock-bar .dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--border); display: block; }
+  .mock-bar .url { margin-left: 8px; font-size: 11.5px; color: var(--faint); font-family: var(--font-num); }
+  .mock-bar .paper { margin-left: auto; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--warn); background: var(--warn-soft); padding: 4px 9px; border-radius: 999px; }
+  .mock-grid { display: grid; grid-template-columns: 240px 1fr; gap: 14px; padding: 15px; }
+  @media (max-width: 680px) { .mock-grid { grid-template-columns: 1fr; } }
+  .mk-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .mk-head { padding: 11px 14px; border-bottom: 1px solid var(--border); font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+  .mk-head .c { margin-left: auto; color: var(--faint); font-family: var(--font-num); }
+
+  .mk-sig { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; padding: 11px 14px; border-bottom: 1px solid var(--border-soft); }
+  .mk-sig:last-child { border-bottom: 0; }
+  .mk-sig.sel { background: var(--accent-soft); position: relative; }
+  .mk-sig.sel::before { content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; background: var(--accent); border-radius: 0 3px 3px 0; }
+  .mk-badge { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; font-weight: 700; font-size: 11px; }
+  .mk-badge.long { background: var(--long-soft); color: var(--long); }
+  .mk-badge.short { background: var(--short-soft); color: var(--short); }
+  .mk-sig .tk { font-weight: 650; font-size: 13.5px; }
+  .mk-sig .when { font-size: 11px; color: var(--faint); }
+  .mk-st { font-size: 9px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; margin-left: 6px; }
+  .mk-st.activa { background: var(--long-soft); color: var(--long); }
+  .mk-st.espera { background: var(--warn-soft); color: var(--warn); }
+  .mk-st.tp { background: var(--accent-soft); color: var(--accent); }
+  .mk-rr { text-align: right; font-family: var(--font-num); font-size: 12px; font-weight: 600; }
+  .mk-rr .sub { display: block; font-size: 9.5px; color: var(--faint); font-weight: 500; }
+
+  .mk-body { padding: 16px; }
+  .mk-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .mk-sym { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
+  .mk-side { font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; padding: 3px 8px; border-radius: 5px; }
+  .mk-side.long { color: var(--long); background: var(--long-soft); }
+  .mk-author { margin-left: auto; font-size: 11.5px; color: var(--muted); display: flex; align-items: center; gap: 7px; }
+  .mk-av { width: 22px; height: 22px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-size: 10px; font-weight: 700; }
+
+  .mk-levels { display: grid; gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-top: 14px; }
+  .mk-lv { display: grid; grid-template-columns: 90px 1fr auto; align-items: center; gap: 10px; padding: 11px 13px; background: var(--surface); }
+  .mk-lv .lbl { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+  .mk-lv .lbl .tick { width: 8px; height: 8px; border-radius: 2px; }
+  .tick.entry { background: var(--accent); } .tick.sl { background: var(--short); } .tick.tp { background: var(--long); }
+  .mk-lv .price { font-family: var(--font-num); font-size: 15px; font-weight: 600; }
+  .mk-lv .delta { text-align: right; font-size: 12px; font-family: var(--font-num); }
+  .mk-lv .delta.pos { color: var(--long); } .mk-lv .delta.neg { color: var(--short); }
+  .mk-lv .delta .pct { color: var(--muted); font-size: 11px; }
+
+  .mk-copy { margin-top: 14px; border: 1px dashed var(--border); border-radius: 10px; padding: 14px; background: var(--surface-2); }
+  .mk-copy h5 { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin: 0 0 11px; }
+  .mk-fields { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  @media (max-width: 480px) { .mk-fields { grid-template-columns: 1fr 1fr; } }
+  .mk-field label { display: block; font-size: 10px; color: var(--muted); margin-bottom: 5px; }
+  .mk-field .box { font-family: var(--font-num); font-size: 13px; background: var(--surface); color: var(--fg); border: 1px solid var(--border); border-radius: 7px; padding: 8px 10px; }
+  .mk-risk { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 13px; font-size: 12px; flex-wrap: wrap; }
+  .mk-risk .chip { font-family: var(--font-num); font-weight: 600; }
+  .mk-risk .chip.ok { color: var(--long); }
+  .mk-btn { margin-top: 13px; background: var(--accent); color: #fff; border-radius: 8px; padding: 10px; text-align: center; font-weight: 600; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+  .mk-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 14px; }
+  @media (max-width: 560px) { .mk-stats { grid-template-columns: 1fr 1fr; } }
+  .mk-stat { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 11px 12px; }
+  .mk-stat .k { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; }
+  .mk-stat .v { font-size: 19px; font-weight: 700; margin-top: 3px; font-family: var(--font-num); }
+  .mk-stat .v.pos { color: var(--long); }
+  .mk-stat .sub { font-size: 10.5px; color: var(--faint); margin-top: 1px; }
+  .mk-full { grid-column: 1 / -1; }
+
+  .mk-note { grid-column: 1 / -1; margin-top: 2px; padding: 12px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+  .mk-note .lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--faint); margin-bottom: 4px; }
+  .mk-note p { font-size: 12.5px; color: var(--muted); }
+
+  @media print { .topbar { position: static; } body::before { display: none; } .mock { box-shadow: none; } }
+</style>
+
+</head>
+<body>
+<div class="topbar band">
+  <div class="inner">
+    <span class="brand"><span class="dot"></span>CorroTrade <span class="sub">· propuesta para el círculo</span></span>
+    <span class="tb-spacer"></span>
+    <span class="pill paper">● Empieza en Paper</span>
+    <button class="pill" id="themeBtn" type="button">Claro</button>
+  </div>
+</div>
+
+<header class="hero band">
+  <div class="inner">
+    <div class="eyebrow">Copy-trading de confianza · Interactive Brokers</div>
+    <h1>Un panel donde compartimos señales y cada uno opera en su cuenta, con su decisión.</h1>
+    <p class="lead">Uno plantea una operación sobre una acción —entrada, stop y objetivo— y cada miembro la revisa, ajusta su capital y la ejecuta en <b>su propia cuenta de IBKR</b>. Siempre con confirmación manual. Nunca automático, nunca gestionamos el dinero de nadie.</p>
+    <div class="meta">
+      <span>Documento <b>no técnico</b> para revisar la idea en grupo</span>
+      <span>Estado: <b>diseño cerrado, listo para construir</b></span>
+      <span>Autor: <b>somos_dev9</b></span>
+    </div>
+    <div class="frase">
+      En una frase: un <b>tablón de señales privado</b> para un círculo pequeño, con seguimiento del progreso de cada uno, donde la ejecución la hace siempre <b>la persona</b>, en su cuenta, pulsando el botón.
+    </div>
+  </div>
+</header>
+
+<section class="block band">
+  <div class="inner">
+    <div class="sec-label">Qué resuelve</div>
+    <h2 class="sec-title">El problema, y por qué no es tan simple como parece</h2>
+    <p class="sec-intro">Compartir una idea de trading por chat es fácil. Lo difícil es que cada uno la ejecute bien, con su tamaño y sus niveles, sin errores de cálculo y sin ceder el control de su cuenta a nadie. Eso es lo que resuelve este panel.</p>
+    <div class="cards c3">
+      <div class="card">
+        <h3><span class="chip-ic"><svg class="icon" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 5-6"/></svg></span>Señal clara</h3>
+        <p>Entrada, stop loss y take profit, con el riesgo y el objetivo mostrados en <b>€ y en %</b> sobre el capital que mete cada uno. Sin ambigüedad.</p>
+      </div>
+      <div class="card">
+        <h3><span class="chip-ic violet"><svg class="icon" viewBox="0 0 24 24"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M21 16v5h-5"/><path d="M3 16v5h5"/><path d="M21 12H3"/></svg></span>Cada uno su tamaño</h3>
+        <p>La misma señal, pero cada miembro ajusta cuánto capital arriesga y sus niveles antes de ejecutar. Nadie copia a ciegas.</p>
+      </div>
+      <div class="card">
+        <h3><span class="chip-ic green"><svg class="icon" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg></span>Progreso propio</h3>
+        <p>Cuántas operaciones, cuántas ganadas, cuánto P&L en € y % por día, semana y mes. El historial de cada uno, solo suyo.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="block band">
+  <div class="inner">
+    <div class="sec-label">Cómo funciona</div>
+    <h2 class="sec-title">El recorrido de una operación, de principio a fin</h2>
+    <p class="sec-intro">Seis pasos. La persona decide y confirma; el sistema solo prepara, calcula y transmite lo que ya se aprobó.</p>
+    <div class="flow">
+      <div class="step">
+        <span class="n">1</span>
+        <div><h4>Alguien publica una señal</h4><p>Un autor del círculo plantea una operación sobre una acción: ticker, entrada, stop y objetivo, con una nota explicando el motivo.</p><span class="who">· Autor</span></div>
+      </div>
+      <div class="step">
+        <span class="n">2</span>
+        <div><h4>Cada miembro la revisa</h4><p>La ve en su panel con el riesgo calculado en € y %. Decide si le convence y ajusta su capital y sus niveles a su gusto.</p><span class="who">· Miembro</span></div>
+      </div>
+      <div class="step">
+        <span class="n">3</span>
+        <div><h4>Confirma en el panel</h4><p>Pulsa “Revisar y ejecutar”. Aparece un resumen claro de lo que va a pasar. Nada se envía hasta que confirma de forma explícita.</p><span class="who">· Miembro</span></div>
+      </div>
+      <div class="step">
+        <span class="n">4</span>
+        <div><h4>El sistema la prepara</h4><p>Recalcula el número de acciones y comprueba que todo cuadra. La deja en cola, asociada solo a esa persona.</p><span class="who">· Servidor</span></div>
+      </div>
+      <div class="step">
+        <span class="n">5</span>
+        <div><h4>Se ejecuta en su cuenta</h4><p>Un pequeño ayudante en el equipo de esa persona recoge la orden y la coloca en <b>su</b> cuenta de IBKR, con stop y objetivo atados.</p><span class="who">· Su equipo + IBKR</span></div>
+      </div>
+      <div class="step">
+        <span class="n">6</span>
+        <div><h4>El panel muestra el resultado</h4><p>El estado se actualiza solo: enviada, ejecutada, cerrada. Y el progreso personal recoge el resultado.</p><span class="who">· Panel</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="block band">
+  <div class="inner">
+    <div class="sec-label">Así se ve</div>
+    <h2 class="sec-title">El panel, por dentro</h2>
+    <p class="sec-intro">Esto es lo que abre cada miembro: a la izquierda las señales del círculo; a la derecha, el detalle de la seleccionada con sus niveles y el riesgo ya calculado en € y %, el bloque para copiarla a su cuenta, y su progreso. Es una vista de ejemplo con datos simulados.</p>
+
+    <div class="mock">
+      <div class="mock-bar">
+        <span class="dots"><i></i><i></i><i></i></span>
+        <span class="url">panel-senales · privado</span>
+        <span class="paper">● Paper</span>
+      </div>
+      <div class="mock-grid">
+        <!-- Lista de señales -->
+        <div class="mk-card">
+          <div class="mk-head">Señales <span class="c">3</span></div>
+          <div>
+            <div class="mk-sig sel">
+              <span class="mk-badge long">L</span>
+              <span><span class="tk">NVDA</span><span class="mk-st activa">Activa</span><span class="when" style="display:block">hace 6 min</span></span>
+              <span class="mk-rr">1:2.6<span class="sub">R:R</span></span>
+            </div>
+            <div class="mk-sig">
+              <span class="mk-badge long">L</span>
+              <span><span class="tk">AAPL</span><span class="mk-st espera">Espera</span><span class="when" style="display:block">hace 42 min</span></span>
+              <span class="mk-rr">1:2.3<span class="sub">R:R</span></span>
+            </div>
+            <div class="mk-sig">
+              <span class="mk-badge short">S</span>
+              <span><span class="tk">TSLA</span><span class="mk-st activa">Activa</span><span class="when" style="display:block">hace 1 h</span></span>
+              <span class="mk-rr">1:2.2<span class="sub">R:R</span></span>
+            </div>
+            <div class="mk-sig">
+              <span class="mk-badge long">L</span>
+              <span><span class="tk">MSFT</span><span class="mk-st tp">Cerrada · TP</span><span class="when" style="display:block">hace 2 días</span></span>
+              <span class="mk-rr">1:2.3<span class="sub">R:R</span></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Detalle -->
+        <div class="mk-card">
+          <div class="mk-head">Detalle de la señal</div>
+          <div class="mk-body">
+            <div class="mk-top">
+              <span class="mk-sym">NVDA</span>
+              <span class="mk-side long">Long</span>
+              <span class="mk-st activa" style="font-size:10px">Activa</span>
+              <span class="mk-author"><span class="mk-av">JM</span>Jorge M.</span>
+            </div>
+            <div style="font-size:11.5px;color:var(--faint);margin-top:4px;font-family:var(--font-num)">NASDAQ · USD · igual que en IBKR</div>
+            <div class="mk-levels">
+              <div class="mk-lv">
+                <span class="lbl"><span class="tick entry"></span>Entrada</span>
+                <span class="price">$184.20</span>
+                <span class="delta"><span class="pct">referencia</span></span>
+              </div>
+              <div class="mk-lv">
+                <span class="lbl"><span class="tick sl"></span>Stop</span>
+                <span class="price">$178.50</span>
+                <span class="delta neg">−€155 <span class="pct">−3.1%</span></span>
+              </div>
+              <div class="mk-lv">
+                <span class="lbl"><span class="tick tp"></span>Objetivo</span>
+                <span class="price">$199.00</span>
+                <span class="delta pos">+€402 <span class="pct">+8.0%</span></span>
+              </div>
+            </div>
+            <div class="mk-copy">
+              <h5>Copiar a mi cuenta</h5>
+              <div class="mk-fields">
+                <div class="mk-field"><label>Capital (€)</label><div class="box">5 000</div></div>
+                <div class="mk-field"><label>Mi stop</label><div class="box">178.50</div></div>
+                <div class="mk-field"><label>Mi objetivo</label><div class="box">199.00</div></div>
+              </div>
+              <div class="mk-risk">
+                <span>Mi riesgo: <span class="chip ok">−€155 (3.1%)</span></span>
+                <span>Objetivo: <span class="chip" style="color:var(--long)">+€402 (8.0%)</span></span>
+              </div>
+              <div class="mk-btn"><svg class="icon sm" viewBox="0 0 24 24" style="stroke:#fff"><path d="m5 12 5 5L20 7"/></svg>Revisar y ejecutar</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Nota -->
+        <div class="mk-note">
+          <div class="lbl">Nota de la señal</div>
+          <p>Rebote en media de 50 sesiones con volumen creciente. Entrar en apertura si mantiene 183,5. Evitar si rompe el soporte.</p>
+        </div>
+
+        <!-- Alertas de precio -->
+        <div class="mk-card mk-full">
+          <div class="mk-head">Alertas de precio <span class="c">→ Telegram</span></div>
+          <div>
+            <div class="mk-sig">
+              <span class="mk-badge" style="background:var(--accent-soft);color:var(--accent)"><svg class="icon sm" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span>
+              <span><span class="tk">NVDA</span><span class="when" style="display:block">avisar si ≥ $190.00</span></span>
+              <span class="mk-st activa">Vigilando</span>
+            </div>
+            <div class="mk-sig">
+              <span class="mk-badge" style="background:var(--accent-soft);color:var(--accent)"><svg class="icon sm" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span>
+              <span><span class="tk">AAPL</span><span class="when" style="display:block">avisar si ≤ $225.00</span></span>
+              <span class="mk-st tp">Enviada ✓</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Progreso -->
+        <div class="mk-card mk-full">
+          <div class="mk-head">Mi progreso <span class="c">· mes</span></div>
+          <div class="mk-stats">
+            <div class="mk-stat"><div class="k">Operaciones</div><div class="v">18</div><div class="sub">12 ✓ · 6 ✗</div></div>
+            <div class="mk-stat"><div class="k">Acierto</div><div class="v">67%</div><div class="sub">ratio de aciertos</div></div>
+            <div class="mk-stat"><div class="k">P&amp;L</div><div class="v pos">+€1 340</div><div class="sub">beneficio neto</div></div>
+            <div class="mk-stat"><div class="k">Rendimiento</div><div class="v pos">+4.6%</div><div class="sub">sobre capital</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="mock-caption"><svg class="icon sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>Vista de ejemplo · datos simulados · cuenta paper. El prototipo real es interactivo.</p>
+  </div>
+</section>
+
+<section class="block band">
+  <div class="inner">
+    <div class="sec-label">La arquitectura, en claro</div>
+    <h2 class="sec-title">Tres piezas, y por qué están separadas</h2>
+    <p class="sec-intro">Interactive Brokers no permite que un servicio central opere las cuentas de varias personas. No es una decisión nuestra: es como IBKR protege las cuentas particulares. Por eso el diseño reparte el trabajo en tres piezas.</p>
+    <div class="diagram">
+      <div class="piece">
+        <div class="head"><span class="chip-ic"><svg class="icon" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span><h4>El panel web</h4><span class="label">lo que ves</span></div>
+        <p>La pantalla compartida: la lista de señales, el detalle de cada una, las notas, el botón de confirmar y tu progreso. Se abre con usuario y contraseña.</p>
+      </div>
+      <div class="conn">se comunican de forma cifrada</div>
+      <div class="piece">
+        <div class="head"><span class="chip-ic violet"><svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14M5 12a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2M5 12a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2"/></svg></span><h4>El servidor central</h4><span class="label">lo compartido</span></div>
+        <p>Guarda las señales, las notas, la cola de órdenes y el progreso de todos. <b>Nunca toca IBKR</b> ni conoce las contraseñas de nadie. Es el punto de encuentro, no el que opera.</p>
+      </div>
+      <div class="conn">el ayudante pregunta cada pocos segundos</div>
+      <div class="piece">
+        <div class="head"><span class="chip-ic green"><svg class="icon" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/></svg></span><h4>El ayudante local</h4><span class="label">en tu equipo</span></div>
+        <p>Un programa pequeño que corre en el ordenador de cada persona. Pregunta al servidor si tiene órdenes suyas y las coloca en <b>su</b> cuenta de IBKR. No recibe conexiones de fuera: solo pregunta hacia afuera.</p>
+      </div>
+    </div>
+    <div class="callout">
+      <h3><svg class="icon" viewBox="0 0 24 24"><path d="M12 2 3 7v6c0 5 3.5 7.5 9 9 5.5-1.5 9-4 9-9V7z"/><path d="m9 12 2 2 4-4"/></svg>La idea clave que lo hace seguro</h3>
+      <p>Todas las conexiones que cruzan internet las empieza o bien tu panel (cuando entras) o bien tu ayudante (preguntando hacia afuera). <b>Nada entra sin permiso</b> a tu equipo ni a tu cuenta. El servidor central jamás se mete en tu ordenador.</p>
+    </div>
+  </div>
+</section>
+
+<section class="block band">
+  <div class="inner">
+    <div class="sec-label">Seguridad y control</div>
+    <h2 class="sec-title">Dónde está tu dinero y quién decide</h2>
+    <p class="sec-intro">Lo más importante de un proyecto así es dejar claras las garantías. Estas son las que trae el diseño de serie.</p>
+    <div class="seclist">
+      <div class="secitem">
+        <span class="ic"><svg class="icon" viewBox="0 0 24 24"><path d="m9 12 2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg></span>
+        <div><h4>Siempre confirmas tú</h4><p>Ninguna orden sale sin que una persona la revise y pulse el botón. No existe el modo “opera solo mientras duermo”.</p></div>
+      </div>
+      <div class="secitem">
+        <span class="ic"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+        <div><h4>Nadie guarda tu contraseña de IBKR</h4><p>Tu usuario, tu contraseña y tu doble factor viven solo en tu propio IBKR, en tu equipo. El sistema nunca los conoce.</p></div>
+      </div>
+      <div class="secitem">
+        <span class="ic"><svg class="icon" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M2 12h20"/><path d="M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20"/></svg></span>
+        <div><h4>Cada uno solo ve lo suyo</h4><p>Tu ayudante nunca ve ni toca las operaciones de otra persona. Las cuentas están aisladas entre sí.</p></div>
+      </div>
+      <div class="secitem">
+        <span class="ic"><svg class="icon" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg></span>
+        <div><h4>El stop se coloca siempre</h4><p>Las órdenes se envían “atadas”: entrada, stop y objetivo juntos. La posición nunca queda desprotegida por un fallo a medias.</p></div>
+      </div>
+      <div class="secitem">
+        <span class="ic"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M14.5 9a2.5 2.5 0 0 0-2.5-1.5c-1.5 0-2.5 1-2.5 2s1 1.5 2.5 2 2.5 1 2.5 2-1 2-2.5 2A2.5 2.5 0 0 1 9.5 16M12 6v1.5M12 16.5V18"/></svg></span>
+        <div><h4>Misma divisa y bolsa que en IBKR</h4><p>Cada señal fija la <b>divisa y la bolsa</b> del instrumento (p. ej. NVDA · NASDAQ · USD). El precio que ves en el panel es el mismo que verás en IBKR: una entrada “200 USD” es 200 USD en esa bolsa, sin ambigüedad ni sustos por cambio de moneda.</p></div>
+      </div>
+      <div class="secitem">
+        <span class="ic"><svg class="icon" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span>
+        <div><h4>Empezamos en cuenta simulada</h4><p>Todo se prueba primero en una cuenta “paper” de IBKR (dinero de mentira, gratis) antes de tocar un euro real. Validamos la mecánica sin riesgo.</p></div>
+      </div>
+      <div class="secitem">
+        <span class="ic"><svg class="icon" viewBox="0 0 24 24"><path d="M14 9V5a3 3 0 0 0-6 0v4"/><rect x="5" y="9" width="14" height="11" rx="2"/></svg></span>
+        <div><h4>La responsabilidad es de cada uno</h4><p>La herramienta propone y calcula; la decisión de operar y el resultado son de la persona que confirma en su cuenta. No gestionamos ni decidimos por nadie.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="block band">
+  <div class="inner">
+    <div class="sec-label">Ampliación propuesta</div>
+    <h2 class="sec-title">Alertas de precio con aviso a Telegram</h2>
+    <p class="sec-intro">Los gráficos los seguimos mirando en TradingView, pero desde el panel marcamos acciones con un precio objetivo y, cuando se alcanza, nos llega un mensaje al Telegram del círculo. Así no hay que vigilar la pantalla.</p>
+    <div class="cards c3">
+      <div class="card">
+        <span class="tag">1 · En el panel</span>
+        <h3 style="margin-top:8px">Pones la alerta</h3>
+        <p>Eliges una acción y un precio (“avísame si NVDA toca 190”), y si quieres, una nota. Queda guardada junto a las señales.</p>
+      </div>
+      <div class="card">
+        <span class="tag">2 · El sistema vigila</span>
+        <h3 style="margin-top:8px">Comprueba el precio</h3>
+        <p>El servidor consulta el precio cada poco y lo compara con tus alertas. Cuando una se cumple, la marca como disparada para no repetirla.</p>
+      </div>
+      <div class="card">
+        <span class="tag">3 · Te llega el aviso</span>
+        <h3 style="margin-top:8px">Mensaje a Telegram</h3>
+        <p>Un bot del círculo manda el aviso al chat: “NVDA ha alcanzado 190 €”. La parte de Telegram es sencilla y directa.</p>
+      </div>
+    </div>
+    <div class="callout">
+      <h3><svg class="icon" viewBox="0 0 24 24"><path d="m5 12 5 5L20 7"/></svg>De dónde sale el precio (decidido)</h3>
+      <p>Para empezar, el precio que dispara la alerta vendrá de una <b>fuente de datos de mercado externa y gratuita</b> (gratis para unos pocos símbolos, de sobra para el círculo). El servidor la consulta cada pocos minutos y compara con las alertas. Es independiente de IBKR, así que las alertas funcionan aunque no haya nadie operando.</p>
+    </div>
+  </div>
+</section>
+
+<section class="block band">
+  <div class="inner">
+    <div class="sec-label">El plan</div>
+    <h2 class="sec-title">Por fases, sin prisa y sin riesgo</h2>
+    <p class="sec-intro">La clave del plan: se construye todo con un ayudante “de mentira” que finge ejecutar, para probar el circuito entero sin IBKR. Cuando funciona, solo se cambia esa pieza por la real. El resto no se toca.</p>
+    <div class="phases">
+      <div class="phase done">
+        <div class="rail"><span class="bullet"></span><span class="line"></span></div>
+        <div class="body"><div class="ph-top"><h4>Fase 0 · Prototipo visual</h4><span class="st done">Hecho</span></div><p>La pantalla del panel ya está diseñada y funcionando con datos de ejemplo. Sirve para ver y validar la experiencia.</p></div>
+      </div>
+      <div class="phase ready">
+        <div class="rail"><span class="bullet"></span><span class="line"></span></div>
+        <div class="body"><div class="ph-top"><h4>Fase 1 · El circuito completo, simulado</h4><span class="st ready">Listo para construir</span></div><p>Panel + servidor funcionando de punta a punta con un ayudante que finge ejecutar. Sin IBKR, sin dinero. Se valida toda la mecánica.</p></div>
+      </div>
+      <div class="phase">
+        <div class="rail"><span class="bullet"></span><span class="line"></span></div>
+        <div class="body"><div class="ph-top"><h4>Fase 2 · Conexión real con IBKR (paper)</h4><span class="st todo">Diseñada</span></div><p>Se sustituye el ayudante simulado por el real, que coloca órdenes de verdad en una cuenta simulada de IBKR. Un usuario, sin dinero real.</p></div>
+      </div>
+      <div class="phase">
+        <div class="rail"><span class="bullet"></span><span class="line"></span></div>
+        <div class="body"><div class="ph-top"><h4>Fase 3 · Varios usuarios y dinero real</h4><span class="st todo">Esbozada</span></div><p>Solo tras validar todo lo anterior: el círculo completo, pruebas de aislamiento, y solo entonces considerar cuentas reales.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="block band">
+  <div class="inner">
+    <div class="sec-label">Lo que ya está decidido</div>
+    <h2 class="sec-title">Decisiones cerradas (para no volver a discutirlas)</h2>
+    <div class="decisions">
+      <div class="decision"><span class="ic"><svg class="icon sm" viewBox="0 0 24 24"><path d="m5 12 5 5L20 7"/></svg></span><p><b>Operamos acciones</b>, no forex ni futuros.<span class="why">Más simple de calcular y de empezar.</span></p></div>
+      <div class="decision"><span class="ic"><svg class="icon sm" viewBox="0 0 24 24"><path d="m5 12 5 5L20 7"/></svg></span><p><b>Ejecución con confirmación, nunca automática.</b><span class="why">Un fallo sería dinero real perdido. La persona siempre revisa y pulsa.</span></p></div>
+      <div class="decision"><span class="ic"><svg class="icon sm" viewBox="0 0 24 24"><path d="m5 12 5 5L20 7"/></svg></span><p><b>El botón se pulsa en el panel</b>, no en la web de IBKR.<span class="why">Objetivo: no tener que entrar a IBKR para operar el día a día.</span></p></div>
+      <div class="decision"><span class="ic"><svg class="icon sm" viewBox="0 0 24 24"><path d="m5 12 5 5L20 7"/></svg></span><p><b>Un ayudante por persona</b>, servidor central compartido.<span class="why">Es la única forma que IBKR permite para cuentas particulares.</span></p></div>
+      <div class="decision"><span class="ic"><svg class="icon sm" viewBox="0 0 24 24"><path d="m5 12 5 5L20 7"/></svg></span><p><b>Empezar en cuenta simulada (paper).</b><span class="why">Gratis y sin riesgo, con el mismo funcionamiento que la real.</span></p></div>
+      <div class="decision"><span class="ic"><svg class="icon sm" viewBox="0 0 24 24"><path d="m5 12 5 5L20 7"/></svg></span><p><b>Privado de entrada:</b> con login, sin indexar, cifrado.<span class="why">Es para un círculo cerrado, no un producto público.</span></p></div>
+    </div>
+  </div>
+</section>
+
+<section class="block band">
+  <div class="inner">
+    <div class="sec-label">Qué hace falta</div>
+    <h2 class="sec-title">Coste y requisitos, en breve</h2>
+    <div class="costs">
+      <div class="cost">
+        <div class="k">Hospedar el servidor</div>
+        <div class="v">0 €<small> /mes posible</small></div>
+        <p>Opción recomendada para empezar: una máquina gratuita de Oracle Cloud. Alternativa de pago cómoda: 5–10 €/mes en una plataforma gestionada.</p>
+      </div>
+      <div class="cost">
+        <div class="k">Cada persona necesita</div>
+        <div class="v">IBKR<small> + el ayudante</small></div>
+        <p>Una cuenta de IBKR (empezando en paper, gratis), su programa IB Gateway abierto, y el ayudante corriendo en su equipo con su clave.</p>
+      </div>
+    </div>
+    <div class="callout">
+      <h3><svg class="icon" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.3 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.3a2 2 0 0 0-3.4 0"/></svg>La fricción honesta del proyecto</h3>
+      <p>Cada persona tiene que mantener su IBKR abierto y re-identificarse con doble factor cada cierto tiempo (IBKR lo exige, reportado como semanal). No es “enciéndelo y olvídate”. Es el precio de que nadie, ni nosotros, controle la cuenta de otro.</p>
+      <p>No es un obstáculo oculto: lo decimos claro porque condiciona cómo se usa el día a día, y porque es justo lo que mantiene cada cuenta bajo el control de su dueño.</p>
+    </div>
+  </div>
+</section>
+
+<footer class="foot band">
+  <p class="disc">Documento de diseño para revisión interna del círculo. No es asesoramiento financiero ni una recomendación de inversión. Operar con acciones conlleva riesgo de pérdida; cada persona decide, confirma y asume sus operaciones en su propia cuenta.</p>
+</footer>
+
+<script>
+  (function () {
+    var btn = document.getElementById("themeBtn");
+    function current() {
+      var attr = document.documentElement.getAttribute("data-theme");
+      if (attr) return attr;
+      return "dark"; // oscuro por defecto
+    }
+    function sync() { btn.textContent = current() === "dark" ? "Claro" : "Oscuro"; }
+    btn.addEventListener("click", function () {
+      var next = current() === "dark" ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", next);
+      sync();
+    });
+    sync();
+  })();
+</script>
+</body>
+</html>
